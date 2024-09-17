@@ -41,12 +41,17 @@ const Schemas: React.FC = () => {
   }, []);
 
   const fetchSchemas = async () => {
-    // TODO: Replace with actual API call
-    const mockSchemas: Schema[] = [
-      { id: 1, subject: "user", version: 1, schema: '{"type":"record","name":"User","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"}]}' },
-      { id: 2, subject: "product", version: 1, schema: '{"type":"record","name":"Product","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"price","type":"double"}]}' },
-    ];
-    setSchemas(mockSchemas);
+    try {
+      const response = await fetch('/schemas');
+      if (!response.ok) {
+        throw new Error('Failed to fetch schemas');
+      }
+      const data: Schema[] = await response.json();
+      setSchemas(data);
+    } catch (error) {
+      console.error('Error fetching schemas:', error);
+      // TODO: Handle error state, perhaps set an error message in state
+    }
   };
 
   const handleCreate = () => {

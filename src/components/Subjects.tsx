@@ -39,12 +39,27 @@ const Subjects: React.FC = () => {
   }, []);
 
   const fetchSubjects = async () => {
-    // TODO: Replace with actual API call
-    const mockSubjects: Subject[] = [
-      { name: "user", versions: [1, 2, 3] },
-      { name: "product", versions: [1, 2] },
-    ];
-    setSubjects(mockSubjects);
+    try {
+      const response = await fetch('/subjects');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const subjectNames = await response.json();
+      
+      const subjectsWithVersions = await Promise.all(subjectNames.map(async (name: string) => {
+        const versionsResponse = await fetch(`/subjects/${name}/versions`);
+        if (!versionsResponse.ok) {
+          throw new Error(`HTTP error! status: ${versionsResponse.status}`);
+        }
+        const versions = await versionsResponse.json();
+        return { name, versions };
+      }));
+      
+      setSubjects(subjectsWithVersions);
+    } catch (error) {
+      console.error("Failed to fetch subjects:", error);
+      // TODO: Handle error appropriately (e.g., show error message to user)
+    }
   };
 
   const handleEdit = (subject: Subject) => {
