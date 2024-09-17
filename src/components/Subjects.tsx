@@ -22,9 +22,10 @@ import {
   Input,
   VStack,
   Text,
-  Textarea,
+  HStack,
 } from "@chakra-ui/react";
 import JsonView from '@uiw/react-json-view';
+import Editor from "@monaco-editor/react";
 
 interface Subject {
   name: string;
@@ -41,11 +42,11 @@ interface Schema {
 const Subjects: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [newSchema, setNewSchema] = useState<string>("");
   const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
   const { isOpen: isSchemaOpen, onOpen: onSchemaOpen, onClose: onSchemaClose } = useDisclosure();
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [subjectName, setSubjectName] = useState<string>("");
 
   useEffect(() => {
     fetchSubjects();
@@ -76,8 +77,8 @@ const Subjects: React.FC = () => {
   };
 
   const handleEdit = async (subject: Subject) => {
-    setSelectedSubject(subject);
     setIsCreating(false);
+    setSubjectName(subject.name);
     try {
       const latestVersion = Math.max(...subject.versions);
       const response = await fetch(`/subjects/${subject.name}/versions/${latestVersion}`);
@@ -95,7 +96,6 @@ const Subjects: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const subjectName = isCreating ? newSchema.split('\n')[0].trim() : selectedSubject!.name;
       const response = await fetch(`/subjects/${subjectName}/versions`, {
         method: 'POST',
         headers: {
@@ -130,10 +130,21 @@ const Subjects: React.FC = () => {
   };
 
   const handleCreateSubject = () => {
-    setSelectedSubject(null);
     setIsCreating(true);
     setNewSchema("");
+    setSubjectName("");
     onOpen();
+  };
+
+  const handlePrettify = () => {
+    try {
+      const parsedSchema = JSON.parse(newSchema);
+      const prettifiedSchema = JSON.stringify(parsedSchema, null, 2);
+      setNewSchema(prettifiedSchema);
+    } catch (error) {
+      console.error("Failed to prettify schema:", error);
+      // TODO: Handle error appropriately (e.g., show error message to user)
+    }
   };
 
   return (
@@ -177,24 +188,48 @@ const Subjects: React.FC = () => {
 
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{isCreating ? "Create New Subject" : `Edit Schema for ${selectedSubject?.name}`}</ModalHeader>
+        <ModalContent maxWidth="70vw" maxHeight="90vh">
+          <ModalHeader>{isCreating ? "Create New Subject" : `Edit Schema for ${subjectName}`}</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
-            <FormControl>
-              <FormLabel>Schema</FormLabel>
-              <Textarea
-                value={newSchema}
-                onChange={(e) => setNewSchema(e.target.value)}
-                height="300px"
+          <ModalBody height="70vh">
+            <FormControl mb={4}>
+              <FormLabel>Subject Name</FormLabel>
+              <Input
+                value={subjectName}
+                onChange={(e) => setSubjectName(e.target.value)}
+                isReadOnly={!isCreating}
+                placeholder={isCreating ? "Enter subject name" : ""}
               />
+            </FormControl>
+            <FormControl height="calc(100% - 80px)">
+              <FormLabel>Schema</FormLabel>
+              <Box border="1px" borderColor="gray.200" borderRadius="md">
+                <Editor
+                  height="40vh"
+                  defaultLanguage="json"
+                  value={newSchema}
+                  onChange={(value) => setNewSchema(value || "")}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    wordWrap: "on",
+                    lineNumbers: "off",
+                    folding: false,
+                  }}
+                />
+              </Box>
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleSave}>
-              {isCreating ? "Create Subject" : "Save New Version"}
-            </Button>
-            <Button onClick={onClose}>Cancel</Button>
+            <HStack spacing={4} width="100%">
+              <Button onClick={handlePrettify}>Prettify</Button>
+              <Box flex={1} />
+              <Button colorScheme="blue" onClick={handleSave}>
+                {isCreating ? "Create" : "Update"}
+              </Button>
+              <Button onClick={onClose}>Cancel</Button>
+            </HStack>
           </ModalFooter>
         </ModalContent>
       </Modal>
