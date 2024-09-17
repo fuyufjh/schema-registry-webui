@@ -21,11 +21,20 @@ import {
   FormLabel,
   Input,
   VStack,
+  Text,
 } from "@chakra-ui/react";
+import JsonView from '@uiw/react-json-view';
 
 interface Subject {
   name: string;
   versions: number[];
+}
+
+interface Schema {
+  subject: string;
+  version: number;
+  id: number;
+  schema: string;
 }
 
 const Subjects: React.FC = () => {
@@ -33,6 +42,8 @@ const Subjects: React.FC = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [newSubject, setNewSubject] = useState<Partial<Subject>>({});
+  const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
+  const { isOpen: isSchemaOpen, onOpen: onSchemaOpen, onClose: onSchemaClose } = useDisclosure();
 
   useEffect(() => {
     fetchSubjects();
@@ -86,6 +97,21 @@ const Subjects: React.FC = () => {
     onClose();
   };
 
+  const handleVersionClick = async (subject: string, version: number) => {
+    try {
+      const response = await fetch(`/subjects/${subject}/versions/${version}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const schema = await response.json();
+      setSelectedSchema(schema);
+      onSchemaOpen();
+    } catch (error) {
+      console.error("Failed to fetch schema:", error);
+      // TODO: Handle error appropriately (e.g., show error message to user)
+    }
+  };
+
   return (
     <Box>
       <Heading as="h1" size="xl" mb={4}>
@@ -106,7 +132,19 @@ const Subjects: React.FC = () => {
           {subjects.map((subject) => (
             <Tr key={subject.name}>
               <Td>{subject.name}</Td>
-              <Td>{subject.versions.join(", ")}</Td>
+              <Td>
+                {subject.versions.map((version, index) => (
+                  <Button
+                    key={index}
+                    size="sm"
+                    variant="link"
+                    onClick={() => handleVersionClick(subject.name, version)}
+                    mr={2}
+                  >
+                    {version}
+                  </Button>
+                ))}
+              </Td>
               <Td>
                 <Button onClick={() => handleEdit(subject)}>Edit</Button>
               </Td>
@@ -145,6 +183,35 @@ const Subjects: React.FC = () => {
               Save
             </Button>
             <Button onClick={onClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isSchemaOpen} onClose={onSchemaClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Schema Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {selectedSchema && (
+              <VStack align="start" spacing={4}>
+                <Text><strong>Subject:</strong> {selectedSchema.subject}</Text>
+                <Text><strong>Version:</strong> {selectedSchema.version}</Text>
+                <Text><strong>ID:</strong> {selectedSchema.id}</Text>
+                <Box width="100%" overflowX="auto">
+                  <JsonView
+                    value={JSON.parse(selectedSchema.schema)}
+                    displayDataTypes={false}
+                    displayObjectSize={false}
+                    enableClipboard={false}
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </Box>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onSchemaClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
