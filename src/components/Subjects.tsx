@@ -22,6 +22,7 @@ import {
   Input,
   VStack,
   Text,
+  Textarea,
 } from "@chakra-ui/react";
 import JsonView from '@uiw/react-json-view';
 
@@ -41,9 +42,10 @@ const Subjects: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-  const [newSubject, setNewSubject] = useState<Partial<Subject>>({});
+  const [newSchema, setNewSchema] = useState<string>("");
   const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
   const { isOpen: isSchemaOpen, onOpen: onSchemaOpen, onClose: onSchemaClose } = useDisclosure();
+  const [isCreating, setIsCreating] = useState<boolean>(false);
 
   useEffect(() => {
     fetchSubjects();
@@ -73,28 +75,43 @@ const Subjects: React.FC = () => {
     }
   };
 
-  const handleEdit = (subject: Subject) => {
+  const handleEdit = async (subject: Subject) => {
     setSelectedSubject(subject);
-    setNewSubject(subject);
-    onOpen();
-  };
-
-  const handleCreate = () => {
-    setSelectedSubject(null);
-    setNewSubject({});
-    onOpen();
+    setIsCreating(false);
+    try {
+      const latestVersion = Math.max(...subject.versions);
+      const response = await fetch(`/subjects/${subject.name}/versions/${latestVersion}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const schema = await response.json();
+      setNewSchema(schema.schema);
+      onOpen();
+    } catch (error) {
+      console.error("Failed to fetch latest schema:", error);
+      // TODO: Handle error appropriately (e.g., show error message to user)
+    }
   };
 
   const handleSave = async () => {
-    // TODO: Implement actual API call to save/update subject
-    if (selectedSubject) {
-      // Update existing subject
-      setSubjects(subjects.map(s => s.name === selectedSubject.name ? { ...s, ...newSubject } : s));
-    } else {
-      // Create new subject
-      setSubjects([...subjects, newSubject as Subject]);
+    try {
+      const subjectName = isCreating ? newSchema.split('\n')[0].trim() : selectedSubject!.name;
+      const response = await fetch(`/subjects/${subjectName}/versions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ schema: newSchema }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      await fetchSubjects(); // Refresh the subjects list
+      onClose();
+    } catch (error) {
+      console.error("Failed to save new schema version:", error);
+      // TODO: Handle error appropriately (e.g., show error message to user)
     }
-    onClose();
   };
 
   const handleVersionClick = async (subject: string, version: number) => {
@@ -112,14 +129,19 @@ const Subjects: React.FC = () => {
     }
   };
 
+  const handleCreateSubject = () => {
+    setSelectedSubject(null);
+    setIsCreating(true);
+    setNewSchema("");
+    onOpen();
+  };
+
   return (
     <Box>
       <Heading as="h1" size="xl" mb={4}>
         Subjects
       </Heading>
-      <Button onClick={handleCreate} mb={4}>
-        Create New Subject
-      </Button>
+      <Button onClick={handleCreateSubject} mb={4}>Create New Subject</Button>
       <Table variant="simple">
         <Thead>
           <Tr>
@@ -153,34 +175,24 @@ const Subjects: React.FC = () => {
         </Tbody>
       </Table>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{selectedSubject ? "Edit Subject" : "Create New Subject"}</ModalHeader>
+          <ModalHeader>{isCreating ? "Create New Subject" : `Edit Schema for ${selectedSubject?.name}`}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Name</FormLabel>
-                <Input
-                  value={newSubject.name || ""}
-                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-                />
-              </FormControl>
-              {selectedSubject && (
-                <FormControl>
-                  <FormLabel>Versions</FormLabel>
-                  <Input
-                    value={newSubject.versions?.join(", ") || ""}
-                    onChange={(e) => setNewSubject({ ...newSubject, versions: e.target.value.split(",").map(v => parseInt(v.trim())) })}
-                  />
-                </FormControl>
-              )}
-            </VStack>
+            <FormControl>
+              <FormLabel>Schema</FormLabel>
+              <Textarea
+                value={newSchema}
+                onChange={(e) => setNewSchema(e.target.value)}
+                height="300px"
+              />
+            </FormControl>
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" mr={3} onClick={handleSave}>
-              Save
+              {isCreating ? "Create Subject" : "Save New Version"}
             </Button>
             <Button onClick={onClose}>Cancel</Button>
           </ModalFooter>
