@@ -150,61 +150,24 @@ const Schemas: React.FC = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} size="xl">
+      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose}>
         <ModalOverlay />
-        <ModalContent maxWidth="90vw">
+        <ModalContent maxWidth="60vw">
           <ModalHeader>Schema Details</ModalHeader>
           <ModalCloseButton />
           <ModalBody overflowX="auto">
             {detailsSchema && (
-              <>
-                <Text><strong>ID:</strong> {detailsSchema.id}</Text>
-                <Text><strong>Subject:</strong> {detailsSchema.subject}</Text>
-                <Text><strong>Version:</strong> {detailsSchema.version}</Text>
-                <Text><strong>Schema Type:</strong> {detailsSchema.schemaType ? detailsSchema.schemaType : "None"}</Text>
-                <Text><strong>Schema:</strong></Text>
-                <Code
-                  display="block"
-                  whiteSpace="pre-wrap"
-                  overflowX="auto"
-                  maxWidth="100%"
-                  p={2}
-                  borderRadius="md"
-                  bg={codeBgColor}
-                >
-                  {JSON.stringify(JSON.parse(detailsSchema.schema), null, 2)}
-                </Code>
-                <Text><strong>References:</strong></Text>
-                {detailsSchema.references && detailsSchema.references.length > 0 ? (
-                  <UnorderedList>
-                    {detailsSchema.references.map((ref, index) => (
-                      <ListItem key={index}>
-                        {ref.name} (Subject: {ref.subject}, Version: {ref.version})
-                      </ListItem>
-                    ))}
-                  </UnorderedList>
-                ) : (
-                  <Text>None</Text>
-                )}
-                <Text><strong>Metadata:</strong></Text>
-                {detailsSchema.metadata && detailsSchema.metadata.tags ? (
-                  <UnorderedList>
-                    {Object.entries(detailsSchema.metadata.tags).map(([key, values]) => (
-                      <ListItem key={key}>
-                        {key}: {values.join(', ')}
-                      </ListItem>
-                    ))}
-                  </UnorderedList>
-                ) : (
-                  <Text>None</Text>
-                )}
-                <Text><strong>Ruleset:</strong></Text>
-                {detailsSchema.ruleset ? (
-                  <Code>{JSON.stringify(detailsSchema.ruleset, null, 2)}</Code>
-                ) : (
-                  <Text>None</Text>
-                )}
-              </>
+              <Code
+                display="block"
+                whiteSpace="pre-wrap"
+                overflowX="auto"
+                maxWidth="100%"
+                p={4}
+                borderRadius="md"
+                bg={codeBgColor}
+              >
+                {JSON.stringify(detailsSchema, null, 2)}
+              </Code>
             )}
           </ModalBody>
           <ModalFooter>
