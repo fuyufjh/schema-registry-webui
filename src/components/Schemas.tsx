@@ -27,32 +27,7 @@ import {
   ListItem,
   useColorModeValue
 } from "@chakra-ui/react";
-
-interface Schema {
-  id: number;
-  subject: string;
-  version: number;
-  schema: string;
-  schemaType?: string;
-  references?: SchemaReference[];
-  metadata?: Metadata;
-  ruleset?: RuleSet;
-}
-
-interface SchemaReference {
-  name: string;
-  subject: string;
-  version: number;
-}
-
-interface Metadata {
-  tags: Record<string, string[]>;
-}
-
-interface RuleSet {
-  // RuleSet properties are not specified in the provided OpenAPI spec
-  // You may need to define this based on your specific requirements
-}
+import { Schema } from "../models";
 
 const Schemas: React.FC = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -212,18 +187,15 @@ const Schemas: React.FC = () => {
                   <Text>None</Text>
                 )}
                 <Text><strong>Metadata:</strong></Text>
-                {detailsSchema.metadata ? (
-                  <>
-                    <Text><strong>Metadata:</strong></Text>
-                    <UnorderedList>
-                      {Object.entries(detailsSchema.metadata.tags).map(([key, values]) => (
-                        <ListItem key={key}>
-                          {key}: {values.join(', ')}
-                        </ListItem>
-                      ))}
-                    </UnorderedList>
-                  </>
-                ): (
+                {detailsSchema.metadata && detailsSchema.metadata.tags ? (
+                  <UnorderedList>
+                    {Object.entries(detailsSchema.metadata.tags).map(([key, values]) => (
+                      <ListItem key={key}>
+                        {key}: {values.join(', ')}
+                      </ListItem>
+                    ))}
+                  </UnorderedList>
+                ) : (
                   <Text>None</Text>
                 )}
                 <Text><strong>Ruleset:</strong></Text>
