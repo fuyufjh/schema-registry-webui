@@ -26,17 +26,13 @@ import {
 } from "@chakra-ui/react";
 import JsonView from '@uiw/react-json-view';
 import Editor from "@monaco-editor/react";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { Schema } from "../models";
 
 interface Subject {
   name: string;
   versions: number[];
-}
-
-interface Schema {
-  subject: string;
-  version: number;
-  id: number;
-  schema: string;
 }
 
 const Subjects: React.FC = () => {
@@ -72,7 +68,7 @@ const Subjects: React.FC = () => {
       setSubjects(subjectsWithVersions);
     } catch (error) {
       console.error("Failed to fetch subjects:", error);
-      // TODO: Handle error appropriately (e.g., show error message to user)
+      toast.error(`Failed to fetch subjects: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -90,7 +86,7 @@ const Subjects: React.FC = () => {
       onOpen();
     } catch (error) {
       console.error("Failed to fetch latest schema:", error);
-      // TODO: Handle error appropriately (e.g., show error message to user)
+      toast.error(`Failed to fetch latest schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -106,11 +102,13 @@ const Subjects: React.FC = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      const result = await response.json();
       await fetchSubjects(); // Refresh the subjects list
       onClose();
+      toast.success(`Schema saved successfully. ID: ${result.id}`);
     } catch (error) {
       console.error("Failed to save new schema version:", error);
-      // TODO: Handle error appropriately (e.g., show error message to user)
+      toast.error(`Failed to save new schema version: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -125,7 +123,7 @@ const Subjects: React.FC = () => {
       onSchemaOpen();
     } catch (error) {
       console.error("Failed to fetch schema:", error);
-      // TODO: Handle error appropriately (e.g., show error message to user)
+      toast.error(`Failed to fetch schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -143,12 +141,13 @@ const Subjects: React.FC = () => {
       setNewSchema(prettifiedSchema);
     } catch (error) {
       console.error("Failed to prettify schema:", error);
-      // TODO: Handle error appropriately (e.g., show error message to user)
+      toast.error(`Failed to prettify schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   return (
     <Box>
+      <ToastContainer />
       <Heading as="h1" size="xl" mb={4}>
         Subjects
       </Heading>

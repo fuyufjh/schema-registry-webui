@@ -26,6 +26,8 @@ import {
 
 import { Schema } from '../models';
 import JsonView from '@uiw/react-json-view';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Schemas: React.FC = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -47,7 +49,7 @@ const Schemas: React.FC = () => {
       setSchemas(data);
     } catch (error) {
       console.error('Error fetching schemas:', error);
-      // TODO: Handle error state, perhaps set an error message in state
+      toast.error(`Failed to fetch schemas: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -64,15 +66,38 @@ const Schemas: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedSchema) {
-      // TODO: Update existing schema
-      console.log("Updating schema:", newSchema);
-    } else {
-      // TODO: Create new schema
-      console.log("Creating new schema:", newSchema);
+    try {
+      let response;
+      if (selectedSchema) {
+        response = await fetch(`/subjects/${newSchema.subject}/versions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ schema: newSchema.schema }),
+        });
+      } else {
+        response = await fetch('/schemas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newSchema),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      onClose();
+      await fetchSchemas();
+      toast.success(`Schema ${selectedSchema ? 'updated' : 'created'} successfully. ID: ${result.id}`);
+    } catch (error) {
+      console.error('Error saving schema:', error);
+      toast.error(`Failed to save schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    onClose();
-    await fetchSchemas();
   };
 
   const [detailsSchema, setDetailsSchema] = useState<Schema | null>(null);
@@ -89,6 +114,7 @@ const Schemas: React.FC = () => {
 
   return (
     <Box>
+      <ToastContainer />
       <Heading as="h1" size="xl" mb={4}>
         Schemas
       </Heading>
