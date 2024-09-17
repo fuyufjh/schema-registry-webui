@@ -76,8 +76,7 @@ const Subjects: React.FC = () => {
     setIsCreating(false);
     setSubjectName(subject.name);
     try {
-      const latestVersion = Math.max(...subject.versions);
-      const response = await fetch(`/subjects/${subject.name}/versions/${latestVersion}`);
+      const response = await fetch(`/subjects/${subject.name}/versions/latest`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
