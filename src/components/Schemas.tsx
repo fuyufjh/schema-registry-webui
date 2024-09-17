@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   Box,
-  Heading,
+  Button,
   Table,
   Thead,
   Tbody,
   Tr,
   Th,
   Td,
-  Button,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -16,18 +15,17 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  useDisclosure,
   FormControl,
   FormLabel,
   Input,
   Textarea,
-  Text,
-  Code,
-  UnorderedList,
-  ListItem,
-  useColorModeValue
-} from "@chakra-ui/react";
-import { Schema } from "../models";
+  useDisclosure,
+  Heading,
+  useColorModeValue,
+} from '@chakra-ui/react';
+
+import { Schema } from '../models';
+import JsonView from '@uiw/react-json-view';
 
 const Schemas: React.FC = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -82,6 +80,7 @@ const Schemas: React.FC = () => {
 
   // Add this line to call the hook at the top level
   const codeBgColor = useColorModeValue("gray.100", "gray.700");
+  const jsonViewBgColor = useColorModeValue("white", "gray.800");
 
   const handleDetails = (schema: Schema) => {
     setDetailsSchema(schema);
@@ -157,17 +156,17 @@ const Schemas: React.FC = () => {
           <ModalCloseButton />
           <ModalBody overflowX="auto">
             {detailsSchema && (
-              <Code
-                display="block"
-                whiteSpace="pre-wrap"
-                overflowX="auto"
-                maxWidth="100%"
-                p={4}
+              <Box
                 borderRadius="md"
-                bg={codeBgColor}
+                overflow="hidden"
               >
-                {JSON.stringify(detailsSchema, null, 2)}
-              </Code>
+                <JsonView
+                  value={detailsSchema}
+                  style={{ backgroundColor: jsonViewBgColor }}
+                  displayDataTypes={false}
+                  shortenTextAfterLength={80}
+                />
+              </Box>
             )}
           </ModalBody>
           <ModalFooter>
