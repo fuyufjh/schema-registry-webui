@@ -6,10 +6,9 @@ import {
   VStack,
   Text,
   Link,
-  theme,
 } from "@chakra-ui/react";
+import theme from "./theme";
 import { BrowserRouter as Router, Route, Routes, Link as RouterLink } from "react-router-dom";
-import { ColorModeSwitcher } from "./ColorModeSwitcher";
 import Schemas from "./components/Schemas";
 import Subjects from "./components/Subjects";
 import Metadata from "./components/Metadata";
@@ -28,7 +27,6 @@ const App: React.FC = () => (
       <Flex>
         <Sidebar />
         <Box flex={1}>
-          <ColorModeSwitcher justifySelf="flex-end" />
           <Box p={4}>
           <Routes>
               <Route path="/schemas" element={<Schemas />} />
