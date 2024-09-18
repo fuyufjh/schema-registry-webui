@@ -33,6 +33,7 @@ import { Schema } from "../models";
 interface Subject {
   name: string;
   versions: number[];
+  latestVersion: number;
 }
 
 const Subjects: React.FC = () => {
@@ -62,7 +63,14 @@ const Subjects: React.FC = () => {
           throw new Error(`HTTP error! status: ${versionsResponse.status}`);
         }
         const versions = await versionsResponse.json();
-        return { name, versions };
+
+        const latestResponse = await fetch(`/subjects/${name}/versions/latest`);
+        if (!latestResponse.ok) {
+          throw new Error(`HTTP error! status: ${latestResponse.status}`);
+        }
+        const latestSchema = await latestResponse.json();
+        
+        return { name, versions, latestVersion: latestSchema.version };
       }));
       
       setSubjects(subjectsWithVersions);
@@ -164,13 +172,14 @@ const Subjects: React.FC = () => {
             <Tr key={subject.name}>
               <Td>{subject.name}</Td>
               <Td>
-                {subject.versions.map((version, index) => (
+                {subject.versions.map((version) => (
                   <Button
-                    key={index}
+                    key={version}
                     size="sm"
                     variant="link"
                     onClick={() => handleVersionClick(subject.name, version)}
                     mr={2}
+                    fontWeight={version === subject.latestVersion ? "bold" : "normal"}
                   >
                     {version}
                   </Button>
