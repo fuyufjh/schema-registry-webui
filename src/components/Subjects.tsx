@@ -248,7 +248,7 @@ const Subjects: React.FC = () => {
               <Box border="1px" borderColor="gray.200" borderRadius="md">
                 <Editor
                   height="40vh"
-                  defaultLanguage="json"
+                  language={schemaType === "PROTOBUF" ? "proto" : "json"}
                   value={newSchema}
                   onChange={(value) => setNewSchema(value || "")}
                   options={{
