@@ -42,10 +42,14 @@ export type CompatibilityLevel = 'NONE' | 'BACKWARD' | 'BACKWARD_TRANSITIVE' | '
 
 export interface Config {
   compatibilityLevel: CompatibilityLevel;
+  alias?: string;
+  normalize?: boolean;
 }
 
 export interface ConfigUpdateRequest {
-  compatibility: CompatibilityLevel;
+  compatibility?: CompatibilityLevel;
+  alias?: string;
+  normalize?: boolean;
 }
 
 // Mode-related models
