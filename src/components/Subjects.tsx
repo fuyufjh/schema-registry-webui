@@ -193,7 +193,7 @@ const Subjects: React.FC = () => {
         </Tbody>
       </Table>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" closeOnEsc={true}>
         <ModalOverlay />
         <ModalContent maxWidth="70vw" maxHeight="90vh">
           <ModalHeader>{isCreating ? "Create New Subject" : `Edit Schema for ${subjectName}`}</ModalHeader>
@@ -204,8 +204,8 @@ const Subjects: React.FC = () => {
               <Input
                 value={subjectName}
                 onChange={(e) => setSubjectName(e.target.value)}
-                isReadOnly={!isCreating}
-                placeholder={isCreating ? "Enter subject name" : ""}
+                disabled={!isCreating}
+                placeholder="Enter subject name"
               />
             </FormControl>
             <FormControl height="calc(100% - 80px)">
