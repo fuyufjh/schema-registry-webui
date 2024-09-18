@@ -29,6 +29,7 @@ import Editor from "@monaco-editor/react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Schema } from "../models";
+import { getSubjects, getSubjectVersions, getSubjectVersion, registerSchema } from "../api";
 
 interface Subject {
   name: string;
@@ -51,24 +52,15 @@ const Subjects: React.FC = () => {
 
   const fetchSubjects = async () => {
     try {
-      const response = await fetch('/subjects');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const subjectNames = await response.json();
+      const response = await getSubjects();
+      const subjectNames = response.data;
       
       const subjectsWithVersions = await Promise.all(subjectNames.map(async (name: string) => {
-        const versionsResponse = await fetch(`/subjects/${name}/versions`);
-        if (!versionsResponse.ok) {
-          throw new Error(`HTTP error! status: ${versionsResponse.status}`);
-        }
-        const versions = await versionsResponse.json();
+        const versionsResponse = await getSubjectVersions(name);
+        const versions = versionsResponse.data;
 
-        const latestResponse = await fetch(`/subjects/${name}/versions/latest`);
-        if (!latestResponse.ok) {
-          throw new Error(`HTTP error! status: ${latestResponse.status}`);
-        }
-        const latestSchema = await latestResponse.json();
+        const latestResponse = await getSubjectVersion(name, 'latest');
+        const latestSchema = latestResponse.data;
         
         return { name, versions, latestVersion: latestSchema.version };
       }));
@@ -84,11 +76,8 @@ const Subjects: React.FC = () => {
     setIsCreating(false);
     setSubjectName(subject.name);
     try {
-      const response = await fetch(`/subjects/${subject.name}/versions/latest`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const schema = await response.json();
+      const response = await getSubjectVersion(subject.name, 'latest');
+      const schema = response.data;
       setNewSchema(schema.schema);
       onOpen();
     } catch (error) {
@@ -99,17 +88,8 @@ const Subjects: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`/subjects/${subjectName}/versions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ schema: newSchema }),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
+      const response = await registerSchema(subjectName, { schema: newSchema });
+      const result = response.data;
       await fetchSubjects(); // Refresh the subjects list
       onClose();
       toast.success(`Schema saved successfully. ID: ${result.id}`);
@@ -121,11 +101,8 @@ const Subjects: React.FC = () => {
 
   const handleVersionClick = async (subject: string, version: number) => {
     try {
-      const response = await fetch(`/subjects/${subject}/versions/${version}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const schema = await response.json();
+      const response = await getSubjectVersion(subject, version);
+      const schema = response.data;
       setSelectedSchema(schema);
       onSchemaOpen();
     } catch (error) {

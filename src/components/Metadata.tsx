@@ -1,29 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import { Box, Heading, VStack } from "@chakra-ui/react";
+import { getSchemaRegistryVersion } from "../api";
+import { SchemaRegistryServerVersion } from "../models";
 
 const Metadata: React.FC = () => {
-  const [metadata, setMetadata] = useState<string>("");
-  const [version, setVersion] = useState<string>("");
+  const [version, setVersion] = useState<SchemaRegistryServerVersion | null>(null);
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const idResponse = await fetch('/v1/metadata/id');
-        const versionResponse = await fetch('/v1/metadata/version');
-        
-        if (!idResponse.ok || !versionResponse.ok) {
-          throw new Error(`HTTP error! status: ${idResponse.status} or ${versionResponse.status}`);
-        }
-        
-        const idData = await idResponse.json();
-        const versionData = await versionResponse.json();
-        
-        setMetadata(JSON.stringify(idData, null, 2));
-        setVersion(JSON.stringify(versionData, null, 2));
+        const registryVersion = await getSchemaRegistryVersion();
+        setVersion(registryVersion.data);
       } catch (error) {
         console.error("Error fetching metadata:", error);
-        setMetadata("Error fetching metadata");
-        setVersion("Error fetching version");
+        setVersion(null);
       }
     };
 
@@ -38,21 +28,6 @@ const Metadata: React.FC = () => {
       <VStack align="start" spacing={4}>
         <Box>
           <Heading as="h2" size="lg" mb={2}>
-            ID
-          </Heading>
-          <Box
-            as="pre"
-            p={4}
-            borderWidth={1}
-            borderRadius="md"
-            width="100%"
-            overflowX="auto"
-          >
-            {metadata}
-          </Box>
-        </Box>
-        <Box>
-          <Heading as="h2" size="lg" mb={2}>
             Version
           </Heading>
           <Box
@@ -63,7 +38,7 @@ const Metadata: React.FC = () => {
             width="100%"
             overflowX="auto"
           >
-            {version}
+            {version ? JSON.stringify(version, null, 2) : "Error fetching version"}
           </Box>
         </Box>
       </VStack>
