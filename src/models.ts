@@ -24,6 +24,8 @@ export interface RegisterSchemaRequest {
   schema: string;
   schemaType?: string;
   references?: SchemaReference[];
+  metadata?: Record<string, string>;
+  ruleSet?: Record<string, Array<any>>;
 }
 
 export interface RegisterSchemaResponse {

@@ -30,6 +30,7 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Checkbox,
+  Select,
 } from "@chakra-ui/react";
 import JsonView from '@uiw/react-json-view';
 import Editor from "@monaco-editor/react";
@@ -37,11 +38,13 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Schema } from "../models";
 import { getSubjects, getSubjectVersions, getSubjectVersion, registerSchema, deleteSubject } from "../api";
+import { AxiosError } from "axios";
 
 interface Subject {
   name: string;
   versions: number[];
   latestVersion: number;
+  schemaType: string;
 }
 
 const Subjects: React.FC = () => {
@@ -55,11 +58,26 @@ const Subjects: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
   const [isPermanentDelete, setIsPermanentDelete] = useState<boolean>(false);
+  const [schemaType, setSchemaType] = useState<string>("AVRO");
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     fetchSubjects();
   }, []);
+
+  const handleError = (error: unknown, errorContext: string) => {
+    let errorMessage: string;
+    if (error instanceof AxiosError) {
+      errorMessage = error.response?.data?.message || error.message;
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    } else {
+      errorMessage = String(error);
+    }
+
+    console.error(`${errorContext}:`, error);
+    toast.error(`${errorContext}: ${errorMessage}`);
+  };
 
   const fetchSubjects = async () => {
     try {
@@ -74,39 +92,38 @@ const Subjects: React.FC = () => {
         const latestSchema = latestResponse.data;
         
         return { name, versions, latestVersion: latestSchema.version };
-      }));
+      })) as Subject[];
       
       setSubjects(subjectsWithVersions);
     } catch (error) {
-      console.error("Failed to fetch subjects:", error);
-      toast.error(`Failed to fetch subjects: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, "Failed to fetch subjects");
     }
   };
+
 
   const handleEdit = async (subject: Subject) => {
     setIsCreating(false);
     setSubjectName(subject.name);
+    setSchemaType(subject.schemaType);
     try {
       const response = await getSubjectVersion(subject.name, 'latest');
       const schema = response.data;
       setNewSchema(schema.schema);
       onOpen();
     } catch (error) {
-      console.error("Failed to fetch latest schema:", error);
-      toast.error(`Failed to fetch latest schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, "Failed to fetch latest schema");
     }
   };
 
   const handleSave = async () => {
     try {
-      const response = await registerSchema(subjectName, { schema: newSchema });
+      const response = await registerSchema(subjectName, { schema: newSchema, schemaType });
       const result = response.data;
       await fetchSubjects(); // Refresh the subjects list
       onClose();
       toast.success(`Schema saved successfully. ID: ${result.id}`);
     } catch (error) {
-      console.error("Failed to save new schema version:", error);
-      toast.error(`Failed to save new schema version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, "Failed to save new schema version");
     }
   };
 
@@ -117,8 +134,7 @@ const Subjects: React.FC = () => {
       setSelectedSchema(schema);
       onSchemaOpen();
     } catch (error) {
-      console.error("Failed to fetch schema:", error);
-      toast.error(`Failed to fetch schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(error, "Failed to fetch schema");
     }
   };
 
@@ -126,6 +142,7 @@ const Subjects: React.FC = () => {
     setIsCreating(true);
     setNewSchema("");
     setSubjectName("");
+    setSchemaType("AVRO");
     onOpen();
   };
 
@@ -214,7 +231,19 @@ const Subjects: React.FC = () => {
                 placeholder="Enter subject name"
               />
             </FormControl>
-            <FormControl height="calc(100% - 80px)">
+            <FormControl mb={4}>
+              <FormLabel>Schema Type</FormLabel>
+              <Select
+                value={schemaType}
+                onChange={(e) => setSchemaType(e.target.value)}
+                disabled={!isCreating}
+              >
+                <option value="AVRO">AVRO</option>
+                <option value="PROTOBUF">PROTOBUF</option>
+                <option value="JSON">JSON</option>
+              </Select>
+            </FormControl>
+            <FormControl height="calc(100% - 140px)">
               <FormLabel>Schema</FormLabel>
               <Box border="1px" borderColor="gray.200" borderRadius="md">
                 <Editor
