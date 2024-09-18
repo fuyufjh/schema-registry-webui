@@ -23,13 +23,20 @@ import {
   VStack,
   Text,
   HStack,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Checkbox,
 } from "@chakra-ui/react";
 import JsonView from '@uiw/react-json-view';
 import Editor from "@monaco-editor/react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Schema } from "../models";
-import { getSubjects, getSubjectVersions, getSubjectVersion, registerSchema } from "../api";
+import { getSubjects, getSubjectVersions, getSubjectVersion, registerSchema, deleteSubject } from "../api";
 
 interface Subject {
   name: string;
@@ -45,6 +52,10 @@ const Subjects: React.FC = () => {
   const { isOpen: isSchemaOpen, onOpen: onSchemaOpen, onClose: onSchemaClose } = useDisclosure();
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [subjectName, setSubjectName] = useState<string>("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
+  const [isPermanentDelete, setIsPermanentDelete] = useState<boolean>(false);
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     fetchSubjects();
@@ -129,6 +140,20 @@ const Subjects: React.FC = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (subjectToDelete) {
+      try {
+        await deleteSubject(subjectToDelete, isPermanentDelete);
+        await fetchSubjects(); // Refresh the subjects list
+        setIsDeleteDialogOpen(false);
+        toast.success(`Subject "${subjectToDelete}" deleted successfully`);
+      } catch (error) {
+        console.error("Failed to delete subject:", error);
+        toast.error(`Failed to delete subject: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  };
+
   return (
     <Box>
       <ToastContainer />
@@ -163,7 +188,11 @@ const Subjects: React.FC = () => {
                 ))}
               </Td>
               <Td>
-                <Button onClick={() => handleEdit(subject)}>Edit</Button>
+                <Button onClick={() => handleEdit(subject)} mr={2}>Edit</Button>
+                <Button onClick={() => {
+                  setSubjectToDelete(subject.name);
+                  setIsDeleteDialogOpen(true);
+                }} colorScheme="red">Delete</Button>
               </Td>
             </Tr>
           ))}
@@ -246,6 +275,41 @@ const Subjects: React.FC = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <AlertDialog
+        isOpen={isDeleteDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsDeleteDialogOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Subject
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <VStack align="start" spacing={4}>
+                <Text>Are you sure you want to delete the subject "{subjectToDelete}"?</Text>
+                <Checkbox
+                  isChecked={isPermanentDelete}
+                  onChange={(e) => setIsPermanentDelete(e.target.checked)}
+                >
+                  Permanent Delete
+                </Checkbox>
+              </VStack>
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   );
 };
