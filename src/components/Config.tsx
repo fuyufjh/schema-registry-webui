@@ -14,7 +14,6 @@ import {
 } from '@chakra-ui/react';
 import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig, getGlobalMode, updateGlobalMode, getSubjectMode, updateSubjectMode, deleteGlobalConfig, deleteSubjectConfig, deleteSubjectMode } from '../api';
 import { Config, CompatibilityLevel, Mode } from '../models';
-import { assert } from 'console';
 
 const ConfigPage: React.FC = () => {
   const [scope, setScope] = useState<'global' | string>('global');
@@ -309,7 +308,7 @@ const ConfigPage: React.FC = () => {
         </InputGroup>
 
         <Text>Normalize schemas</Text>
-        <Select value={String(normalize) || ''} onChange={handleNormalizeChange}>
+        <Select value={String(normalize || '')} onChange={handleNormalizeChange}>
           {normalize === null && (
             <option value="">Keep default</option>
           )}
