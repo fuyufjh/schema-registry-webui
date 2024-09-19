@@ -1,6 +1,6 @@
 {
-  "short_name": "Confluent Schema Registry WebUI",
-  "name": "Confluent Schema Registry WebUI",
+  "short_name": "Schema Registry WebUI",
+  "name": "Schema Registry WebUI",
   "icons": [
     {
       "src": "favicon.ico",

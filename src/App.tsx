@@ -32,7 +32,7 @@ const App: React.FC = () => (
               <Route path="/subjects" element={<Subjects />} />
               <Route path="/config" element={<Config />} />
               <Route path="/metadata" element={<Metadata />} />
-              <Route path="/" element={<Text fontSize="2xl">Welcome to Confluent Schema Registry WebUI</Text>} />
+              <Route path="/" element={<Text fontSize="2xl">Welcome to Schema Registry WebUI</Text>} />
             </Routes>
           </Box>
         </Box>
