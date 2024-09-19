@@ -10,23 +10,47 @@ import {
   InputRightElement,
   Grid,
   Switch,
+  Flex,
 } from '@chakra-ui/react';
-import { getGlobalConfig, updateGlobalConfig } from '../api';
+import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig } from '../api';
 import { Config, CompatibilityLevel } from '../models';
 
 const ConfigPage: React.FC = () => {
+  const [scope, setScope] = useState<'global' | string>('global');
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [alias, setAlias] = useState<string>('');
   const [normalize, setNormalize] = useState<boolean>(false);
   const [compatibilityLevel, setCompatibilityLevel] = useState<CompatibilityLevel>('NONE');
   const toast = useToast();
 
   useEffect(() => {
-    fetchConfig();
-  }, []);
+    fetchSubjects();
+    fetchConfig(scope);
+  }, [scope]);
 
-  const fetchConfig = async () => {
+  const fetchSubjects = async () => {
     try {
-      const config = await getGlobalConfig();
+      const response = await getSubjects();
+      setSubjects(response.data);
+    } catch (error) {
+      toast({
+        title: 'Error fetching subjects',
+        description: 'Unable to load subjects',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const fetchConfig = async (scope: 'global' | string) => {
+    try {
+      let config;
+      if (scope === 'global') {
+        config = await getGlobalConfig();
+      } else {
+        config = await getSubjectConfig(scope);
+      }
       setCompatibilityLevel(config.data.compatibilityLevel);
       setAlias(config.data.alias || '');
       setNormalize(config.data.normalize || false);
@@ -43,7 +67,11 @@ const ConfigPage: React.FC = () => {
 
   const handleSaveAlias = async () => {
     try {
-      await updateGlobalConfig({ alias });
+      if (scope === 'global') {
+        await updateGlobalConfig({ alias });
+      } else {
+        await updateSubjectConfig(scope, { alias });
+      }
       toast({
         title: 'Alias saved',
         status: 'success',
@@ -64,7 +92,11 @@ const ConfigPage: React.FC = () => {
     const normalize = event.target.checked;
     setNormalize(normalize);
     try {
-      await updateGlobalConfig({ normalize });
+      if (scope === 'global') {
+        await updateGlobalConfig({ normalize });
+      } else {
+        await updateSubjectConfig(scope, { normalize });
+      }
       toast({
         title: 'Normalize setting updated',
         status: 'success',
@@ -85,7 +117,11 @@ const ConfigPage: React.FC = () => {
     const newCompatibilityLevel = event.target.value as CompatibilityLevel;
     setCompatibilityLevel(newCompatibilityLevel);
     try {
-      await updateGlobalConfig({ compatibility: newCompatibilityLevel });
+      if (scope === 'global') {
+        await updateGlobalConfig({ compatibility: newCompatibilityLevel });
+      } else {
+        await updateSubjectConfig(scope, { compatibility: newCompatibilityLevel });
+      }
       toast({
         title: 'Compatibility level updated',
         status: 'success',
@@ -104,6 +140,24 @@ const ConfigPage: React.FC = () => {
 
   return (
     <Box p={5}>
+      <Box bg="gray.100" p={4} borderRadius="md" mb={6}>
+        <Flex alignItems="center">
+          <Text fontWeight="bold" mr={4} flexShrink={0}>Config for</Text>
+          <Select
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            bg="white"
+          >
+            <option value="global">Global</option>
+            {subjects.map((subject) => (
+              <option key={subject} value={subject}>
+                {subject}
+              </option>
+            ))}
+          </Select>
+        </Flex>
+      </Box>
+
       <Grid templateColumns="auto 1fr" gap={6} alignItems="center">
         <Text>Alias</Text>
         <InputGroup>
