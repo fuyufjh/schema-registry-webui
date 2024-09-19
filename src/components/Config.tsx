@@ -12,8 +12,8 @@ import {
   Switch,
   Flex,
 } from '@chakra-ui/react';
-import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig } from '../api';
-import { Config, CompatibilityLevel } from '../models';
+import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig, getGlobalMode, updateGlobalMode, getSubjectMode, updateSubjectMode } from '../api';
+import { Config, CompatibilityLevel, Mode } from '../models';
 
 const ConfigPage: React.FC = () => {
   const [scope, setScope] = useState<'global' | string>('global');
@@ -21,11 +21,13 @@ const ConfigPage: React.FC = () => {
   const [alias, setAlias] = useState<string>('');
   const [normalize, setNormalize] = useState<boolean>(false);
   const [compatibilityLevel, setCompatibilityLevel] = useState<CompatibilityLevel>('NONE');
+  const [mode, setMode] = useState<Mode>('READWRITE');
   const toast = useToast();
 
   useEffect(() => {
     fetchSubjects();
     fetchConfig(scope);
+    fetchMode(scope);
   }, [scope]);
 
   const fetchSubjects = async () => {
@@ -58,6 +60,26 @@ const ConfigPage: React.FC = () => {
       toast({
         title: 'Error fetching config',
         description: 'Unable to load configuration',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const fetchMode = async (scope: 'global' | string) => {
+    try {
+      let modeResponse;
+      if (scope === 'global') {
+        modeResponse = await getGlobalMode();
+      } else {
+        modeResponse = await getSubjectMode(scope);
+      }
+      setMode(modeResponse.data);
+    } catch (error) {
+      toast({
+        title: 'Error fetching mode',
+        description: 'Unable to load mode configuration',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -138,6 +160,31 @@ const ConfigPage: React.FC = () => {
     }
   };
 
+  const handleModeChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMode = event.target.value as Mode;
+    setMode(newMode);
+    try {
+      if (scope === 'global') {
+        await updateGlobalMode({ mode: newMode });
+      } else {
+        await updateSubjectMode(scope, { mode: newMode });
+      }
+      toast({
+        title: 'Mode updated',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error updating mode',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Box p={5}>
       <Box bg="gray.100" p={4} borderRadius="md" mb={6}>
@@ -188,6 +235,13 @@ const ConfigPage: React.FC = () => {
           <option value="FULL">FULL</option>
           <option value="FULL_TRANSITIVE">FULL_TRANSITIVE</option>
           <option value="NONE">NONE</option>
+        </Select>
+
+        <Text>Mode</Text>
+        <Select value={mode} onChange={handleModeChange}>
+          <option value="READONLY">READONLY</option>
+          <option value="WRITEONLY">WRITEONLY</option>
+          <option value="READWRITE">READWRITE</option>
         </Select>
       </Grid>
     </Box>
