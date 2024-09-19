@@ -40,6 +40,7 @@ export const deleteSchemaVersion = (subject: string, version: number) =>
 // Config API
 export const getGlobalConfig = () => api.get<Config>('/config');
 export const updateGlobalConfig = (request: ConfigUpdateRequest) => api.put<Config>('/config', request);
+export const deleteGlobalConfig = () => api.delete<Config>('/config');
 export const getSubjectConfig = (subject: string) => api.get<Config>(`/config/${subject}`);
 export const updateSubjectConfig = (subject: string, request: ConfigUpdateRequest) => 
   api.put<Config>(`/config/${subject}`, request);

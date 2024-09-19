@@ -12,7 +12,7 @@ import {
   Switch,
   Flex,
 } from '@chakra-ui/react';
-import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig, getGlobalMode, updateGlobalMode, getSubjectMode, updateSubjectMode } from '../api';
+import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig, getGlobalMode, updateGlobalMode, getSubjectMode, updateSubjectMode, deleteGlobalConfig, deleteSubjectConfig, deleteSubjectMode } from '../api';
 import { Config, CompatibilityLevel, Mode } from '../models';
 import { assert } from 'console';
 
@@ -133,6 +133,9 @@ const ConfigPage: React.FC = () => {
         isClosable: true,
       });
     }
+
+    // Due to a bug (?) in the schema registry, the compatibility level is also set
+    fetchConfig(scope);
   };
 
   const handleNormalizeChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -161,6 +164,9 @@ const ConfigPage: React.FC = () => {
         isClosable: true,
       });
     }
+
+    // Due to a bug (?) in the schema registry, the compatibility level is also set
+    fetchConfig(scope);
   };
 
   const handleCompatibilityLevelChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -212,6 +218,54 @@ const ConfigPage: React.FC = () => {
     } catch (error) {
       toast({
         title: 'Error updating mode',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleReset = async () => {
+    try {
+      if (scope === 'global') {
+        await deleteGlobalConfig();
+        await updateGlobalMode({ mode: 'READWRITE' });
+      } else {
+        try {
+          await deleteSubjectConfig(scope);
+        } catch (error: any) {
+          if (error.response && (error.response.status === 404 || error.response.data?.error_code === 40408)) {
+            // Ignore 404 errors
+          } else {
+            throw error;
+          }
+        }
+        try {
+          await deleteSubjectMode(scope);
+        } catch (error: any) {
+          if (error.response && (error.response.status === 404 || error.response.data?.error_code === 40409)) {
+            // Ignore 404 errors
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+      toast({
+        title: 'Configuration reset',
+        description: 'The configuration has been reset to default values.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh the config and mode after reset
+      fetchConfig(scope);
+      fetchMode(scope);
+    } catch (error) {
+      toast({
+        title: 'Error resetting configuration',
+        description: 'Unable to reset the configuration.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -287,6 +341,9 @@ const ConfigPage: React.FC = () => {
           <option value="READWRITE">READWRITE</option>
         </Select>
       </Grid>
+      <Button onClick={handleReset} colorScheme="red" mt={6}>
+        Reset to Default
+      </Button>
     </Box>
   );
 };
