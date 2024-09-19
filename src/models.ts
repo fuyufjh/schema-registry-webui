@@ -55,6 +55,10 @@ export interface ConfigUpdateRequest {
 // Mode-related models
 export type Mode = 'IMPORT' | 'READONLY' | 'READWRITE';
 
+export interface ModeResponse {
+  mode: Mode;
+}
+
 export interface ModeUpdateRequest {
   mode: Mode;
 }

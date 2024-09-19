@@ -9,7 +9,8 @@ import {
   Schema,
   SubjectVersion,
   RegisterSchemaResponse,
-  SchemaRegistryServerVersion
+  SchemaRegistryServerVersion,
+  ModeResponse
 } from './models';
 
 const api = axios.create({
@@ -45,9 +46,9 @@ export const updateSubjectConfig = (subject: string, request: ConfigUpdateReques
 export const deleteSubjectConfig = (subject: string) => api.delete(`/config/${subject}`);
 
 // Mode API
-export const getGlobalMode = () => api.get<Mode>('/mode');
+export const getGlobalMode = () => api.get<ModeResponse>('/mode');
 export const updateGlobalMode = (request: ModeUpdateRequest) => api.put<Mode>('/mode', request);
-export const getSubjectMode = (subject: string) => api.get<Mode>(`/mode/${subject}`);
+export const getSubjectMode = (subject: string) => api.get<ModeResponse>(`/mode/${subject}`);
 export const updateSubjectMode = (subject: string, request: ModeUpdateRequest) => 
   api.put<Mode>(`/mode/${subject}`, request);
 export const deleteSubjectMode = (subject: string) => api.delete(`/mode/${subject}`);

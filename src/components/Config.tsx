@@ -14,14 +14,18 @@ import {
 } from '@chakra-ui/react';
 import { getGlobalConfig, updateGlobalConfig, getSubjects, getSubjectConfig, updateSubjectConfig, getGlobalMode, updateGlobalMode, getSubjectMode, updateSubjectMode } from '../api';
 import { Config, CompatibilityLevel, Mode } from '../models';
+import { assert } from 'console';
 
 const ConfigPage: React.FC = () => {
   const [scope, setScope] = useState<'global' | string>('global');
   const [subjects, setSubjects] = useState<string[]>([]);
+
+  // Options. Emptry string or `null` means keep default
   const [alias, setAlias] = useState<string>('');
-  const [normalize, setNormalize] = useState<boolean>(false);
-  const [compatibilityLevel, setCompatibilityLevel] = useState<CompatibilityLevel>('NONE');
-  const [mode, setMode] = useState<Mode>('READWRITE');
+  const [normalize, setNormalize] = useState<boolean | null>(null);
+  const [compatibilityLevel, setCompatibilityLevel] = useState<CompatibilityLevel | null>(null);
+  const [mode, setMode] = useState<Mode | null>(null);
+
   const toast = useToast();
 
   useEffect(() => {
@@ -51,11 +55,21 @@ const ConfigPage: React.FC = () => {
       if (scope === 'global') {
         config = await getGlobalConfig();
       } else {
-        config = await getSubjectConfig(scope);
+        try {
+          config = await getSubjectConfig(scope);
+        } catch (error: any) {
+          if (error.response && error.response.data && error.response.data.error_code === 40408) {
+            // "Subject '...' does not have subject-level config configured"
+            // Treat as empty response
+            config = { data: {} };
+          } else {
+            throw error; // Re-throw if it's not the 40408 error
+          }
+        }
       }
-      setCompatibilityLevel(config.data.compatibilityLevel);
+      setCompatibilityLevel(config.data.compatibilityLevel || null);
       setAlias(config.data.alias || '');
-      setNormalize(config.data.normalize || false);
+      setNormalize(config.data.normalize || null);
     } catch (error) {
       toast({
         title: 'Error fetching config',
@@ -73,9 +87,19 @@ const ConfigPage: React.FC = () => {
       if (scope === 'global') {
         modeResponse = await getGlobalMode();
       } else {
-        modeResponse = await getSubjectMode(scope);
+        try {
+          modeResponse = await getSubjectMode(scope);
+        } catch (error: any) {
+          if (error.response && error.response.data && error.response.data.error_code === 40409) {
+            // "Subject '...' does not have subject-level mode configured"
+            // Treat as empty response
+            modeResponse = { data: {} };
+          } else {
+            throw error; // Re-throw if it's not the 40409 error
+          }
+        }
       }
-      setMode(modeResponse.data);
+      setMode(modeResponse.data.mode || null);
     } catch (error) {
       toast({
         title: 'Error fetching mode',
@@ -89,6 +113,7 @@ const ConfigPage: React.FC = () => {
 
   const handleSaveAlias = async () => {
     try {
+      // If alias is empty string, the request will remove the alias
       if (scope === 'global') {
         await updateGlobalConfig({ alias });
       } else {
@@ -110,8 +135,11 @@ const ConfigPage: React.FC = () => {
     }
   };
 
-  const handleNormalizeChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const normalize = event.target.checked;
+  const handleNormalizeChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (event.target.value === '') {
+      return;
+    }
+    const normalize = event.target.value === 'true';
     setNormalize(normalize);
     try {
       if (scope === 'global') {
@@ -136,6 +164,9 @@ const ConfigPage: React.FC = () => {
   };
 
   const handleCompatibilityLevelChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (event.target.value === '') {
+      return;
+    }
     const newCompatibilityLevel = event.target.value as CompatibilityLevel;
     setCompatibilityLevel(newCompatibilityLevel);
     try {
@@ -161,6 +192,9 @@ const ConfigPage: React.FC = () => {
   };
 
   const handleModeChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (event.target.value === '') {
+      return;
+    }
     const newMode = event.target.value as Mode;
     setMode(newMode);
     try {
@@ -211,7 +245,7 @@ const ConfigPage: React.FC = () => {
           <Input
             value={alias}
             onChange={(e) => setAlias(e.target.value)}
-            placeholder="Leave blank to disable"
+            placeholder="Leave blank to unset"
           />
           <InputRightElement width="4.5rem">
             <Button h="1.75rem" size="sm" onClick={handleSaveAlias}>
@@ -221,13 +255,19 @@ const ConfigPage: React.FC = () => {
         </InputGroup>
 
         <Text>Normalize schemas</Text>
-        <Switch
-          isChecked={normalize}
-          onChange={handleNormalizeChange}
-        />
+        <Select value={String(normalize) || ''} onChange={handleNormalizeChange}>
+          {normalize === null && (
+            <option value="">Keep default</option>
+          )}
+          <option value="true">True</option>
+          <option value="false">False</option>
+        </Select>
 
         <Text>Compatibility Level</Text>
-        <Select value={compatibilityLevel} onChange={handleCompatibilityLevelChange}>
+        <Select value={compatibilityLevel || ''} onChange={handleCompatibilityLevelChange}>
+          {compatibilityLevel === null && (
+            <option value="">Keep default</option>
+          )}
           <option value="BACKWARD">BACKWARD</option>
           <option value="BACKWARD_TRANSITIVE">BACKWARD_TRANSITIVE</option>
           <option value="FORWARD">FORWARD</option>
@@ -238,7 +278,10 @@ const ConfigPage: React.FC = () => {
         </Select>
 
         <Text>Mode</Text>
-        <Select value={mode} onChange={handleModeChange}>
+        <Select value={mode || ''} onChange={handleModeChange}>
+          {mode === null && (
+            <option value="">Keep default</option>
+          )}
           <option value="READONLY">READONLY</option>
           <option value="WRITEONLY">WRITEONLY</option>
           <option value="READWRITE">READWRITE</option>
